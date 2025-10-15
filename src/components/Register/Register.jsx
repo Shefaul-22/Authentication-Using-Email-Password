@@ -1,8 +1,9 @@
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import React, { useState } from 'react';
 import { auth } from '../../firebase/firebase.init';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { IoIosEye } from 'react-icons/io';
+import { Link } from 'react-router';
 
 const Register = () => {
 
@@ -14,7 +15,10 @@ const Register = () => {
         event.preventDefault();
         const email = event.target.email.value;
         const password = event.target.password.value;
-        console.log('Register click', email, password)
+        const terms = event.target.terms.checked;
+        const name = event.target.name.value;
+        const photo = event.target.photo.value;
+        console.log('Register click', email, password, terms, name, photo)
 
         const length6Pattern = /^.{6,}$/;
         const casePattern = /^(?=.*[a-z])(?=.*[A-Z]).+$/;
@@ -39,11 +43,33 @@ const Register = () => {
         setError('');
         setSuccess(false);
 
+        if (!terms) {
+            setError('Please accept our terms & conditions');
+            return;
+        }
+
         createUserWithEmailAndPassword(auth, email, password)
             .then(result => {
                 console.log('after creation of a new user', result.user)
                 setSuccess(true);
                 event.target.reset();
+
+                // Update user profile
+                const profile = {
+                    displayName: name,
+                    photoURL: photo
+                }
+
+                updateProfile(result.user, profile)
+                    .then(() => { })
+                    .catch(error)
+
+
+                // send verification Email
+                sendEmailVerification(result.user)
+                    .then(() => {
+                        alert('Please login to your email verify your email address')
+                    })
             })
             .catch(error => {
                 console.log('Error happend', error)
@@ -61,7 +87,7 @@ const Register = () => {
         <div className="hero bg-base-200 min-h-screen">
             <div className="hero-content flex-col lg:flex-row-reverse">
                 <div className="text-center lg:text-left">
-                    <h1 className="text-5xl font-bold">Login now!</h1>
+                    <h1 className="text-5xl font-bold">Register now!</h1>
                     <p className="py-6">
                         Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem
                         quasi. In deleniti eaque aut repudiandae et a id nisi.
@@ -71,8 +97,15 @@ const Register = () => {
                     <div className="card-body">
                         <form onSubmit={handleRegister}>
                             <fieldset className="fieldset">
+                                {/* User name */}
+                                <label className="label">Name</label>
+                                <input type="text" name='name' className="input" placeholder="Your Name" required />
+                                {/* User photoURL */}
+                                <label className="label">Photo URL</label>
+                                <input type="text" name='photo' className="input" placeholder="Photo URL" required />
+                                {/* Email */}
                                 <label className="label">Email</label>
-                                <input type="email" name='email' className="input" placeholder="Email" />
+                                <input type="email" name='email' className="input" placeholder="Email" required />
                                 <label className="label">Password</label>
                                 <div className='relative'>
                                     <input
@@ -81,10 +114,17 @@ const Register = () => {
                                         className="input" placeholder="Password" />
                                     <button onClick={handleTogglePasswordShow}
                                         className=" btn-xs absolute top-4 right-5 cursor-pointer">
-                                            {showPassword ? <FaEyeSlash></FaEyeSlash> : <FaEye></FaEye>}
-                                        </button>
+                                        {showPassword ? <FaEyeSlash></FaEyeSlash> : <FaEye></FaEye>}
+                                    </button>
                                 </div>
-                                <div><a className="link link-hover">Forgot password?</a></div>
+
+                                <div>
+                                    <label className="label">
+                                        <input type="checkbox" name='terms' className="checkbox" />
+                                        Accept Our Terms & Conditions
+                                    </label>
+                                </div>
+
                                 <button className="btn btn-neutral mt-4">Register</button>
                             </fieldset>
 
@@ -96,6 +136,7 @@ const Register = () => {
                                 error && <p className='text-red-500'>{error}</p>
                             }
                         </form>
+                        <p>Already have an account? <Link to='/login' className='text-blue-600 underline'>Login</Link> </p>
                     </div>
                 </div>
             </div>
